@@ -1,0 +1,206 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+
+entity digital_clock is
+	Port ( rst_n : in std_logic;								-- rst_n from Reset push_SW (P205)
+				clk : in std_logic;								-- clk from 4MHz FPGA oscilator (P79)
+			DIGIT : out std_logic_vector( 6 downto 1 );	-- select 1 segment of 6 (P29,28,27,26,24,22)
+			SEG_A : out std_logic;								-- seg_a on/off (P31)
+			SEG_B : out std_logic;								-- seg_b on/off (P33)
+			SEG_C : out std_logic;								-- seg_c on/off (P34)
+			SEG_D : out std_logic;								-- seg_d on/off (P35)
+			SEG_E : out std_logic;								-- seg_e on/off (P36)
+			SEG_F : out std_logic;								-- seg_f on/off (P37)
+			SEG_G : out std_logic;								-- seg_g on/off (P39)
+			SEG_DP : out std_logic								-- seg_dp on/off (P48)
+		--	;data_out : out std_logic_vector( 3 downto 0 )
+		-- ㄴthis additional output is for testing behavior easily with testbench ***
+			);
+end digital_clock;
+
+
+architecture Behavioral of digital_clock is
+
+	-- clock signal of 10s, 1s, 10min, 1min, 1hour
+	signal s10_clk, s01_clk, m10_clk, m01_clk, h01_clk : std_logic;
+	-- count signal of tens and units digit of hour, minute, second
+	signal hr10_cnt, hr01_cnt : std_logic_vector( 3 downto 0 );
+	signal min10_cnt, min01_cnt : std_logic_vector( 3 downto 0 );
+	signal sec10_cnt, sec01_cnt : std_logic_vector( 3 downto 0 );
+	-- signals for display
+	signal sel : std_logic_vector( 2 downto 0 );		-- to select 1 segment (0 to 5)
+	signal data : std_logic_vector( 3 downto 0 );	-- actual displaying value (0 to 9)
+	signal seg : std_logic_vector( 7 downto 0 );		-- 7 segment display on/off (dp,gfedcba)
+
+begin	
+	--	data_out <= data;
+	-- ㄴthis additional code is for testing, showing actual displaying data ***
+
+-- PROCESS_1: select segment
+	process( sel )		
+	begin					 
+		case sel is 	-- LED display digit is determined by Sel value
+			when "000" => DIGIT <= "000001";
+				data <= hr10_cnt;
+			when "001" => DIGIT <= "000010";
+		-----------------------------------------------------------------			
+				data <= hr01_cnt;
+			when "010" => DIGIT <= "000100";
+				data <= min10_cnt;
+			when "011" => DIGIT <= "001000";
+				data <= min01_cnt;
+			when "100" => DIGIT <= "010000";
+				data <= sec10_cnt;
+			when "101" => DIGIT <= "100000";
+				data <= sec01_cnt;
+		-----------------------------------------------------------------
+			when others => null;
+		end case;
+	end process;
+
+
+-- PROCESS_2: operate sel, change showing segmemt
+	process( rst_n, clk )	-- display time every 50 us on 7 segment
+		variable seg_clk_cnt : integer range 0 to 200;
+	begin
+		if( rst_n = '0' ) then
+			sel <= "000";
+			seg_clk_cnt := 0;
+		elsif( clk'event and clk='1' ) then
+			if( seg_clk_cnt = 200 ) then														
+				seg_clk_cnt := 0;
+				if( sel = "101" ) then -- final value of sel
+					sel <= "000";
+				else
+					sel <= sel + 1; -- increase sel
+				end if;
+			else
+				seg_clk_cnt := seg_clk_cnt + 1;
+			end if;
+		end if;
+	end process;
+
+
+-- PROCESS_3: 7 Segment decoding
+	process ( data )
+	begin
+		case data is 	-- dp_gfedcba
+			when "0000" => seg <= "00111111"; -- data value will be displayed "0"
+		---------------------------------------------------------------------------
+			when "0001" => seg <= "00000110"; -- data value will be displayed "1"
+			when "0010" => seg <= "01011011"; -- data value will be displayed "2"
+			when "0011" => seg <= "01001111"; -- data value will be displayed "3"
+			when "0100" => seg <= "01100110"; -- data value will be displayed "4"
+			when "0101" => seg <= "01101101"; -- data value will be displayed "5"
+			when "0110" => seg <= "01111101"; -- data value will be displayed "6"
+			when "0111" => seg <= "00100111"; -- data value will be displayed "7"
+			when "1000" => seg <= "01111111"; -- data value will be displayed "8"
+			when "1001" => seg <= "01101111"; -- data value will be displayed "9"
+			when others => seg <=(others => '0'); -- nothing will be displayed
+		---------------------------------------------------------------------------
+		end case;
+	end process;
+	
+	SEG_A <= seg( 0 );
+	SEG_B <= seg( 1 );
+	SEG_C <= seg( 2 );
+	SEG_D <= seg( 3 );
+	SEG_E <= seg( 4 );
+	SEG_F <= seg( 5 );
+	SEG_G <= seg( 6 );
+	SEG_DP <= seg( 7 );
+
+
+-- PROCESS_4: clock dividing
+	process( rst_n, clk ) -- divide for 1Hz clock
+		variable count_clk : integer range 0 to 2_000_000;	
+	begin
+		if( rst_n = '0' ) then
+			s01_clk <= '1';
+			count_clk := 0;
+		elsif( clk'event and clk='1' ) then
+			--------------------------------------------
+			if (count_clk = 2_000_000) then	-- count 2,000,000 clk signal
+				count_clk := 0;					-- and generate 1 second clk signal
+				s01_clk <= not s01_clk; 					
+			else
+				count_clk := count_clk + 1;
+				s01_clk <= s01_clk;
+			end if;
+			--------------------------------------------
+		end if;	
+	end process;
+
+
+-- PROCESS_5: digital clock counting system
+	process( s01_clk, rst_n ) -- count 1 second
+		Variable h10_cnt, h01_cnt : STD_LOGIC_VECTOR ( 3 downto 0);
+		Variable m10_cnt, m01_cnt : STD_LOGIC_VECTOR ( 3 downto 0);
+		Variable s10_cnt, s01_cnt : STD_LOGIC_VECTOR ( 3 downto 0);
+	
+	begin
+		if( rst_n = '0' ) then		-- display whenever reset is slected
+		---------------------------------------------------------------	
+			h10_cnt := "0001";
+			h01_cnt := "0010";
+			m10_cnt := "0101";
+			m01_cnt := "1000";
+			s10_cnt := "0010";
+			s01_cnt := "0000";
+		---------------------------------------------------------------
+	
+		-- second count process of digital clock
+		elsif( s01_clk = '1' and s01_clk'event ) then
+			s01_cnt := s01_cnt + 1 ;
+
+				if(s01_cnt > "1001" ) then		-- make 10sec after 9sec
+					s01_cnt :="0000";				
+					s10_clk <= '1';
+					s10_cnt := s10_cnt + 1 ;
+				end if ;
+
+				if (s10_cnt > "0101" ) then	-- make 1min after 59sec
+					s10_cnt := "0000";
+					m01_clk <='1';
+					m01_cnt := m01_cnt + 1;
+				end if;
+
+		---------------------------------------------------------------
+		-- minute count process of digital clock
+	
+				if(m01_cnt > "1001" ) then		-- make 10min after 9min
+					m01_cnt := "0000";
+					m10_cnt := m10_cnt + 1 ;
+				end if ;
+	
+				if(m10_cnt > "0101" ) then		-- make 1hour after 59min
+					m10_cnt := "0000";
+					h01_cnt := h01_cnt + 1 ;
+				end if ;
+	
+		-- hour count process of digital clock
+
+				if(h10_cnt = "0001" and h01_cnt > "0010" ) then
+					h10_cnt := "0000";			-- after 12 hour
+					h01_cnt := "0001";			-- set hour = 01
+				elsif (h01_cnt > "1001") then
+					h01_cnt := "0000";			-- make 10hour after 9hour
+					h10_cnt := h10_cnt + 1 ;
+				end if ;
+				
+		---------------------------------------------------------------
+		end if;
+		
+		sec01_cnt <= s01_cnt ;
+		sec10_cnt <= s10_cnt ;
+		min01_cnt <= m01_cnt ;
+		min10_cnt <= m10_cnt ;
+		hr01_cnt <= h01_cnt ;
+		hr10_cnt <= h10_cnt ;
+	
+	end process;
+	
+end Behavioral;

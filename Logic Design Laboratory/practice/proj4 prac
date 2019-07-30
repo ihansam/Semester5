@@ -1,0 +1,39 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use ieee.std_logic_unsigned.all;
+
+entity raminfr is
+    Port ( clk, en, we : in  STD_LOGIC;
+           addr, di : in  STD_LOGIC_VECTOR (3 downto 0);
+           do : out  STD_LOGIC_VECTOR (3 downto 0));
+end raminfr;
+
+architecture Behavioral of raminfr is
+
+	-- RAM type and RAM definition, for save 4 bit X 16 data
+	type ram_type is array (15 downto 0) of std_logic_vector( 3 downto 0);
+	signal ram : ram_type;
+	
+	-- internal signal for clock synchonized read address 
+	signal read_addr : std_logic_vector (3 downto 0);
+	
+begin
+	-- ckl sensitive process 
+	process( clk )
+	begin
+		if( clk = '1' and clk'event ) then
+			if( en = '1' ) then			-- rising edge, en = 1일 때			
+				read_addr <= addr;		-- 읽어올 주소를 내부신호로 전달
+					
+				if( we = '1' ) then
+					ram(conv_integer(addr)) <= di;
+				end if;						-- we가 1일 때는 추가로 ram의 해당 주소에 
+												-- di의 데이터를 load
+			end if;
+		end if;
+	end process;
+	
+	-- read ram data about 'read_addr' and print to 'do'
+	do <= ram(conv_integer(read_addr));
+
+end Behavioral;

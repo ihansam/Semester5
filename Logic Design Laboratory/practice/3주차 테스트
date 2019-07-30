@@ -1,0 +1,125 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+  
+ENTITY shifter_tb IS
+END shifter_tb;
+ 
+ARCHITECTURE behavior OF shifter_tb IS 
+ 
+    -- Component Declaration for the Unit Under Test (UUT)
+    COMPONENT shifter
+    PORT(
+         clk : IN  std_logic;
+         reset : IN  std_logic;
+         enable : IN  std_logic;
+         dir : IN  std_logic;
+         mode : IN  std_logic_vector(1 downto 0);
+         pi : IN  std_logic_vector(3 downto 0);
+         q : OUT  std_logic_vector(3 downto 0)
+        );
+    END COMPONENT;
+    
+   --Inputs
+   signal clk : std_logic := '0';
+   signal reset : std_logic := '0';
+   signal enable : std_logic := '0';
+   signal dir : std_logic := '0';
+   signal mode : std_logic_vector(1 downto 0) := (others => '0');
+   signal pi : std_logic_vector(3 downto 0) := (others => '0');
+
+ 	--Outputs
+   signal q : std_logic_vector(3 downto 0);
+
+   -- Clock period definitions
+   constant clk_period : time := 10 ns;
+ 
+BEGIN
+ 
+	-- Instantiate the Unit Under Test (UUT)
+   uut: shifter PORT MAP (
+          clk => clk,
+          reset => reset,
+          enable => enable,
+          dir => dir,
+          mode => mode,
+          pi => pi,
+          q => q
+        );
+
+   -- Clock process definitions
+   clk_process :process
+   begin
+		clk <= '0';
+		wait for clk_period/2;
+		clk <= '1';
+		wait for clk_period/2;
+   end process;
+ 
+---------------  device opeartion test  ---------------
+	process
+	begin
+	-- reset: 0, enable: 0, mode: 0, dir: 0, pi: 0000
+		wait for 100 ns;	-- not working
+								
+	-- reset: 0, enable: 1, mode: 0, dir: 0, pi: 1010							
+		pi <= "1010";		
+		enable <= '1';		
+		wait for 50 ns;	-- not working
+		
+	-- reset: 1, enable: 0, mode: 0, dir: 0, pi: 1010							
+		reset <= '1';		
+		enable <= '0';		
+		wait for 60 ns;	-- maintain
+
+	-- reset: 1, enable: 1, mode: 0, dir: 0, pi: 1010							
+		enable <= '1';		
+		wait for 100 ns;	-- parallel in
+
+	-- reset: 1, enable: 1, mode: 0, dir: 0, pi: 1011							
+		pi <= "1011";
+		wait for 40 ns;	-- parallel in
+
+	-- reset: 1, enable: 1, mode: 1, dir: 0, pi: 1011							
+		mode <= "01";
+		wait for 40 ns;	-- circular right shift
+		
+	-- reset: 1, enable: 0, mode: 1, dir: 0, pi: 1011							
+		enable <= '0';
+		wait for 20 ns;	-- maintain
+		
+	-- reset: 1, enable: 1, mode: 1, dir: 0, pi: 1011							
+		enable <= '1';
+		wait for 20 ns;	-- circular right shift
+		
+	-- reset: 1, enable: 1, mode: 1, dir: 1, pi: 1011							
+		dir <= '1';
+		wait for 40 ns;	-- circular left shift
+		
+	-- reset: 1, enable: 1, mode: 2, dir: 0, pi: 1011							
+		mode <= "10";
+		dir <= '0';
+		wait for 20 ns;	-- logical right shift
+		
+	-- reset: 1, enable: 1, mode: 2, dir: 1, pi: 1011							
+		dir <= '1';
+		wait for 20 ns;	-- logical left shift
+
+	-- reset: 1, enable: 1, mode: 0, dir: 1, pi: 1010							
+		mode <= "00";
+		pi <= "1010";
+		wait for 20 ns;	-- parallel in
+		
+	-- reset: 1, enable: 1, mode: 3, dir: 0, pi: 1010							
+		mode <= "11";
+		dir <= '0';
+		wait for 20 ns;	-- arithmetic right shift
+		
+	-- reset: 1, enable: 1, mode: 3, dir: 1, pi: 1010							
+		dir <= '1';
+		wait for 20 ns;	-- arithmetic left shift
+		
+	-- reset: 0, end device testing
+		reset <= '0';
+
+	end process;
+END;

@@ -1,0 +1,79 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+  
+ENTITY TB_bin_gray_cnt IS
+END TB_bin_gray_cnt;
+ 
+ARCHITECTURE behavior OF TB_bin_gray_cnt IS 
+ 
+    -- Component Declaration for the Unit Under Test (UUT) 
+    COMPONENT bin_gray_cnt
+    PORT(
+         clk : IN  std_logic;
+         rst_n : IN  std_logic;
+         mode : IN  std_logic;
+         cnt : OUT  std_logic_vector(2 downto 0)
+        );
+    END COMPONENT;
+    
+   --Inputs
+   signal clk : std_logic := '0';
+   signal rst_n : std_logic := '0';
+   signal mode : std_logic := '0';
+
+ 	--Outputs
+   signal cnt : std_logic_vector(2 downto 0);
+
+   -- Clock period definitions
+   constant clk_period : time := 10 ns;
+ 
+BEGIN
+ 
+	-- Instantiate the Unit Under Test (UUT)
+   uut: bin_gray_cnt PORT MAP (
+          clk => clk,
+          rst_n => rst_n,
+          mode => mode,
+          cnt => cnt
+        );
+
+   -- Clock process definitions
+   clk_process :process
+   begin
+		clk <= '0';
+		wait for clk_period/2;
+		clk <= '1';
+		wait for clk_period/2;
+   end process;
+ 
+   -- Device Operation Test
+   test_process: process
+   begin		
+      
+		wait for 30ns;
+		
+		-- binary count mode, for 100ns
+		rst_n <= '1';
+		mode <= '1';
+		wait for 100ns;
+		
+		-- state reset, for 20ns
+		rst_n <= '0';
+		mode <= '0';
+		wait for 20ns;
+		
+		-- gray count mode, for 100ns
+		rst_n <= '1';
+		wait for 100ns;
+		
+		-- binary count mode, for 50ns
+		mode <= '1';
+		wait for 50ns;
+		
+		-- end
+		rst_n <= '0';
+      wait;
+		
+   end process;
+
+END;

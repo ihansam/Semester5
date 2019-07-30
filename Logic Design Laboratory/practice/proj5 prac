@@ -1,0 +1,89 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+
+entity bin_gray_cnt is
+	port( clk, rst_n, mode : in std_logic;
+			cnt : out std_logic_vector( 2 downto 0 ) );
+end bin_gray_cnt;
+
+
+architecture Behavioral of bin_gray_cnt is
+
+	-- state signal declare
+	signal state : std_logic_vector(2 downto 0);
+	signal next_state : std_logic_vector(2 downto 0);
+
+begin
+	-- put present state to output
+	cnt <= state;
+
+	---------- state registers ----------
+	-- clock synchronized state change
+	process( clk, rst_n )
+	begin
+		if( rst_n = '0' ) then
+			state <= "000";
+		elsif( clk = '1' and clk'event ) then
+			state <= next_state;
+		end if;
+	end process;
+
+	---------- fsm counter ----------
+	-- determine next state
+	-- according to present state, mode
+	process( state, mode )
+	Begin
+		Case state is
+			when "000" =>
+				if( mode = '1' ) then	-- mode 1: binary count
+					next_state <= "001";
+				else					-- mode 0: gray count
+					next_state <= "001";
+				end if;
+			when "001" =>
+				if( mode = '1' ) then
+					next_state <= "010";
+					else
+					next_state <= "011";
+				end if;
+			when "010" =>
+				if( mode = '1' ) then
+					next_state <= "011";
+				else
+					next_state <= "110";
+				end if;
+			when "011" =>
+				if( mode = '1' ) then
+					next_state <= "100";
+				else
+					next_state <= "010";
+				end if;
+			when "100" =>
+				if( mode = '1' ) then
+					next_state <= "101";
+				else
+					next_state <= "000";
+				end if;
+			when "101" =>
+				if( mode = '1' ) then
+					next_state <= "110";
+				else
+					next_state <= "100";
+				end if;
+			when "110" =>
+				if( mode = '1' ) then
+					next_state <= "111";
+				else
+					next_state <= "111";
+				end if;
+			when others =>
+				if( mode = '1' ) then
+					next_state <= "000";
+				else
+					next_state <= "101";
+				end if;
+		end case;
+	end process;
+
+end architecture Behavioral;

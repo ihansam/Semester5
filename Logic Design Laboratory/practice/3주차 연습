@@ -1,0 +1,76 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+-- clk: clock signal, reset: 비동기식 리셋, enable: 동기식 enable
+-- dir: shift direction, mode: shifter 소자의 작동 모드
+-- pi: parallel input, q: 소자의 output
+entity shifter is
+    port ( clk, reset, enable, dir : in  STD_LOGIC;
+           mode : in  STD_LOGIC_VECTOR (1 downto 0);
+           pi : in  STD_LOGIC_VECTOR (3 downto 0);
+           q : out  STD_LOGIC_VECTOR (3 downto 0));
+end entity shifter;
+
+
+architecture Behavioral of shifter is
+
+-- 내부신호 reg는 소자 내부의 4 bit register를 표현한 것
+	signal reg: STD_LOGIC_VECTOR (3 downto 0);
+	
+begin
+
+-- register에 저장된 값을 출력
+	q <= reg;
+
+---------------     PROCESS     ---------------
+	process(clk, reset)		
+	
+	-- temp는 shift시 밀려나는 데이터를 저장하기 위한 변수
+		variable temp: STD_LOGIC;
+
+	begin
+	---- 우선적으로, clock과 상관 없이 reset: 0일 때 register reset
+		if (reset = '0') then
+			reg <= "0000";
+		
+	---- reset: 1, clock: rising edge일 때 동작 방식
+		elsif (clk = '1' and clk'event) then
+			
+		----- enable:0일 때 동작 방식
+			if (enable = '0') then	
+				reg <= reg;			-- register값을 유지
+			
+		----- enable:1, mode: 0일 때 동작 방식
+			elsif (mode = "00") then
+				reg <= pi;			-- register에 parallel in 값을 그대로 push
+		
+		----- enable:1, mode:1일 때 동작 방식
+			elsif (mode = "01") then
+				if (dir = '0') then		
+					temp := reg(0);										
+					reg(3 downto 0) <= temp & reg(3 downto 1);	-- dir:0, circular shift right									
+				else
+					temp := reg(3);
+					reg(3 downto 0) <= reg(2 downto 0) & temp;	-- dir:1, circular shift left
+				end if;
+					
+		----- enable:1, mode:2일 때 동작 방식			
+			elsif (mode = "10") then
+				if (dir = '0') then
+					reg(3 downto 0) <= '0' & reg(3 downto 1);		-- dir:0, logical right shift
+				else
+					reg(3 downto 0) <= reg(2 downto 0) & '0';		-- dir:1, logical left shift
+				end if;
+					
+		----- enable:1, mode:3일 때 동작 방식			
+			else
+				if (dir = '0') then
+					reg(2 downto 0) <= reg(3 downto 1);				-- dir:0, arithmetic right shift
+				else
+					reg(3 downto 0) <= reg(2 downto 0) & '0';		-- dir:1, arithmetic left shift
+				end if;
+			end if;
+		end if;
+	end process;
+
+end Behavioral;

@@ -1,0 +1,124 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+ 
+ENTITY tb_raminfr IS
+END tb_raminfr;
+ 
+ARCHITECTURE behavior OF tb_raminfr IS 
+ 
+    -- Component Declaration for the Unit Under Test (UUT)
+    COMPONENT raminfr
+    PORT(
+         clk : IN  std_logic;
+         en : IN  std_logic;
+         we : IN  std_logic;
+         addr : IN  std_logic_vector(3 downto 0);
+         di : IN  std_logic_vector(3 downto 0);
+         do : OUT  std_logic_vector(3 downto 0)
+        );
+    END COMPONENT;
+
+   --Inputs
+   signal clk : std_logic := '0';
+   signal en : std_logic := '0';
+   signal we : std_logic := '0';
+   signal addr : std_logic_vector(3 downto 0) := (others => '0');
+   signal di : std_logic_vector(3 downto 0) := (others => '0');
+
+ 	--Outputs
+   signal do : std_logic_vector(3 downto 0);
+
+   -- Clock period definitions
+   constant clk_period : time := 10 ns;
+ 
+BEGIN
+ 
+	-- Instantiate the Unit Under Test (UUT)
+   uut: raminfr PORT MAP (
+          clk => clk,
+          en => en,
+          we => we,
+          addr => addr,
+          di => di,
+          do => do
+        );
+
+   -- Clock process definitions
+   clk_process :process
+   begin
+		clk <= '0';
+		wait for clk_period/2;
+		clk <= '1';
+		wait for clk_period/2;
+   end process;
+ 
+ ---------- Device Operation ----------
+	Process
+	begin
+
+		wait for 53 ns;
+
+		-- en=0, we = 1, not working
+		addr <= "0000";
+		di <= "1111";
+		we <= '1';
+		wait for 10 ns;
+
+		-- en=1, we = 1, writing mode
+		en <= '1';
+		wait for 10 ns;
+
+		addr <= "0001";
+		di <= "1110";
+		wait for 10 ns;
+
+		addr <= "0010";
+		di <= "1101";
+		wait for 10 ns;
+
+		addr <= "0011";
+		di <= "1100";
+		wait for 10 ns;
+
+		addr <= "0100";
+		di <= "1011";
+		wait for 10 ns;
+
+		addr <= "1100";
+		di <= "0011";
+		wait for 10 ns;
+
+		addr <= "1111";
+		di <= "0000";
+		wait for 10 ns;
+
+		-- en=0, we = 1, not workong
+		en <= '0';
+		addr <= "1101";
+		di <= "0010";
+		wait for 10 ns;
+
+		-- en=0, we = 0, not workong
+		we <= '0';
+		wait for 10 ns;
+
+		addr <= "0010";
+		wait for 10 ns;
+
+		-- en=1, we = 0, reading mode
+		en <= '1';
+		wait for 10 ns;
+
+		addr <= "0100";
+		wait for 10 ns;
+
+		addr <= "0011";
+		wait for 10 ns;
+
+		addr <= "1101";
+		wait for 10 ns;
+
+		report "Simulation end";
+		wait;	
+	end process;
+END;

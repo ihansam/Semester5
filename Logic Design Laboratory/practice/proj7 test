@@ -1,0 +1,64 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+  
+ENTITY testLCD IS
+END testLCD;
+ 
+ARCHITECTURE behavior OF testLCD IS 
+ 
+    -- Component Declaration for the Unit Under Test (UUT) 
+    COMPONENT LCD_test
+    PORT(
+         FPGA_RSTB : IN  std_logic;
+         FPGA_CLK : IN  std_logic;
+         LCD_A : OUT  std_logic_vector(1 downto 0);
+         LCD_EN : OUT  std_logic;
+         LCD_D : OUT  std_logic_vector(7 downto 0)
+        );
+    END COMPONENT;
+    
+   --Inputs
+   signal FPGA_RSTB : std_logic := '0';
+   signal FPGA_CLK : std_logic := '0';
+ 	--Outputs
+   signal LCD_A : std_logic_vector(1 downto 0);
+   signal LCD_EN : std_logic;
+   signal LCD_D : std_logic_vector(7 downto 0);
+
+   -- Clock period definitions
+   constant FPGA_CLK_period : time := 10 ns;
+ 
+BEGIN
+
+	-- Instantiate the Unit Under Test (UUT)
+   uut: LCD_test PORT MAP (
+          FPGA_RSTB => FPGA_RSTB,
+          FPGA_CLK => FPGA_CLK,
+          LCD_A => LCD_A,
+          LCD_EN => LCD_EN,
+          LCD_D => LCD_D
+        );
+
+   -- Clock process definitions
+   FPGA_CLK_process :process
+   begin
+		FPGA_CLK <= '1';
+		wait for FPGA_CLK_period/2;
+		FPGA_CLK <= '0';
+		wait for FPGA_CLK_period/2;
+   end process;
+ 
+
+   -- Stimulus process
+   stim_proc: process
+   begin		
+		
+		FPGA_RSTB <= '0';
+		wait for 400.21 us;	
+		
+		FPGA_RSTB <= '1';
+		wait;
+   
+	end process;
+
+END;
